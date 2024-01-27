@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Form</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Payment Form</h2>
+        <form id="paymentForm" novalidate>
+            <h5 class="mt-5">Order Section</h5>
+            <div class="form-group">
+                <label for="amount">Amount</label>
+                <input type="number" class="form-control" name="amount" id="amount" required min="0.01" step="0.01">
+                <div class="invalid-feedback">Please enter a valid amount.</div>
+            </div>
+            <div class="form-group">
+                <label for="currency">Currency</label>
+                <select class="form-control" id="currency" name="currency" required>
+                    <option value="">Choose...</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="THB">THB</option>
+                    <option value="HKD">HKD</option>
+                    <option value="SGD">SGD</option>
+                    <option value="AUD">AUD</option>
+                </select>
+                <div class="invalid-feedback">Please select a currency.</div>
+            </div>
+            <div class="form-group">
+                <label for="fullName">Customer's Full Name</label>
+                <input type="text" class="form-control" id="fullName" name="fullName" pattern="[a-zA-Z\s]+">
+                <div class="invalid-feedback">Please enter a valid full name.</div>
+            </div>
+
+            <h5 class="mt-5">Payment Section</h5>
+            <div class="form-group">
+                <label for="cardName">Card Holder's Name</label>
+                <input type="text" class="form-control" id="cardName" name="cardName" required pattern="[a-zA-Z\s]+">
+                <div class="invalid-feedback">Please enter the card holder's name.</div>
+            </div>
+            <div class="form-group">
+                <label for="cardNumber">Credit Card Number</label>
+                <span id="cardType" class="text-muted"></span>
+                
+                <input type="text" class="form-control" id="cardNumber" name="cardNumber" required pattern="\d{16}">
+                <div class="invalid-feedback">Please enter a valid 16-digit credit card number.</div>
+            </div>
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label>Expiration Date</label>
+                    <div class="row">
+                        <div class="col">
+                            <input type="text" class="form-control" id="expirationMonth" name="expirationMonth" placeholder="MM" required pattern="\d{2}" maxlength="2">
+                            <div class="invalid-feedback">Please enter a valid month (MM).</div>
+                        </div>
+                        <div class="col">
+                            <input type="text" class="form-control" id="expirationYear" name="expirationYear" placeholder="YYYY" required pattern="\d{4}" maxlength="4">
+                            <div class="invalid-feedback">Please enter a valid year (YYYY).</div>
+                        </div>
+                        <div id="dateError" class="invalid-feedback" style="display: none;">Expiration date cannot be in the past.</div>
+                    </div>
+                </div>
+                
+                <div class="form-group col-md-6">
+                    <label for="cvv">CVV</label>
+                    <input type="text" class="form-control" id="cvv" name="cvv" required pattern="\d{3}" maxlength="3">
+                    <div class="invalid-feedback">Please enter a 3-digit CVV.</div>
+                </div>
+            </div>
+            <button type="submit" id="submitButton" class="btn btn-primary">Submit Payment</button>
+        </form>
+    </div>
+
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+    <script>
+        function getCardType(cardNumber) {
+            const firstDigit = cardNumber[0];
+            const firstTwoDigits = cardNumber.slice(0, 2);
+            const firstFourDigits = cardNumber.slice(0, 4);
+
+            if (firstDigit === '4') {
+                return ' - Visa';
+            } else if (firstTwoDigits >= '51' && firstTwoDigits <= '55') {
+                return ' - MasterCard';
+            } else if (firstTwoDigits === '34' || firstTwoDigits === '37') {
+                return ' - AMEX';
+            } else if (firstFourDigits >= '2221' && firstFourDigits <= '2720') {
+                return ' - MasterCard';
+            }
+
+            return ' - Unknown';
+        }
+
+        document.getElementById('cardNumber').addEventListener('input', function() {
+            var cardNumber = this.value;
+            var cardType = getCardType(cardNumber);
+            document.getElementById('cardType').textContent = cardType;
+        });
+
+
+        document.getElementById('paymentForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            var form = this;
+            var isValid = form.checkValidity() && validateExpirationDate(form);
+
+            updateFormFieldsValidity(form);
+
+            if (isValid) {
+                submitFormData(form);
+            }
+        });
+
+        function validateExpirationDate() {
+            var currentYear = new Date().getFullYear();
+            var currentMonth = new Date().getMonth() + 1; // getMonth() returns 0-11
+            var enteredYear = parseInt(document.getElementById('expirationYear').value, 10);
+            var enteredMonth = parseInt(document.getElementById('expirationMonth').value, 10);
+
+            var isYearValid = enteredYear > currentYear || (enteredYear === currentYear && enteredMonth >= currentMonth);
+            var isMonthValid = enteredMonth > 0 && enteredMonth <= 12;
+
+            var dateErrorDiv = document.getElementById('dateError');
+            if (!isYearValid || !isMonthValid) {
+                var errorMessage = !isMonthValid ? "Please enter a valid month." : "Expiration date cannot be in the past.";
+                dateErrorDiv.textContent = errorMessage;
+                dateErrorDiv.style.display = 'block';
+                return false;
+            } else {
+                dateErrorDiv.style.display = 'none';
+                return true;
+            }
+        }
+
+
+        function updateFormFieldsValidity(form) {
+            var elements = form.querySelectorAll('input, select');
+            Array.prototype.forEach.call(elements, function(element) {
+                var errorDiv = element.nextElementSibling;
+                if (errorDiv && errorDiv.classList.contains('invalid-feedback')) {
+                    if (!element.validity.valid) {
+                        element.classList.add('is-invalid');
+                        errorDiv.style.display = 'block';
+                    } else {
+                        element.classList.remove('is-invalid');
+                        errorDiv.style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        function submitFormData(form) {
+            var submitButton = document.getElementById('submitButton');
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+
+            var formData = new FormData(form);
+
+            fetch('/submit-payment', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                submitButton.disabled = false;
+                submitButton.innerHTML = 'Submit Payment';
+                handleResponse(form, data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while processing your payment.');
+                submitButton.disabled = false;
+                submitButton.innerHTML = 'Submit Payment';
+            });
+        }
+
+        function handleResponse(form, data) {
+            if (data.success) {
+                form.reset();
+                document.getElementById('cardType').textContent = '';
+                alert("Payment successful! \nThe data has been saved to the database.\n\n Payment Type : " + (data.isPayPal ? "PayPal" : "Braintree") + "\n Transaction Id : " + data.result.id + " \n Status : " + data.result.status);
+            } else {
+                alert('Payment failed: ' + data.message);
+            }
+        }
+
+    </script>
+</body>
+</html>
